@@ -1,2 +1,2 @@
 # Music-Player
-web based music player
+Web based music player.
