@@ -1,40 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="Style.css" />
-<link
-rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css"
-/>
-<title>Music Player</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="Style.css" />
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <title>Music Player</title>
 </head>
 <body>
-<h1>Music Player</h1>
-<div class="music-container" id="music-container">
-<div class="music-info">
-<h4 class="title" id="title"></h4>
-<div class="progress-container" id="progress-container">
-<div class="progress" id="progress"></div>
-</div>
-</div>
-<audio src="./Songs/Samthing-Soweto-Amagents-zamusic.org-" id="audio"></audio>
-<div class="img-container">
-<img src="./images/Samthing-Soweto-Amagents-zamusic.org-.jpeg" alt="music-cover" id="cover" />
-</div>
-<div class="navigation">
-<button id="prev" class="action-btn">
-<i class="fa fa-backward" aria-hidden="true"></i>
-</button>
-<button id="play" class="action-btn action-btn-big">
-<i class="fa fa-play" aria-hidden="true"></i>
-</button>
-<button id="next" class="action-btn">
-<i class="fa fa-forward" aria-hidden="true"></i>
-</button>
-</div>
-</div>
-<script src="Script.js"></script>
+  <h1>Music Player</h1>
+
+  <!-- Theme Selection Buttons -->
+  <div class="theme-selection">
+    <button id="light-mode">Light Mode</button>
+    <button id="dark-mode">Dark Mode</button>
+    <button id="sky-blue-mode">Sky Blue Mode</button>
+    <button id="pink-mode">Pink Mode</button>
+  </div>
+
+  <!-- Playlist Creation -->
+  <div class="playlist-container">
+    <input type="file" id="song-input" multiple accept=".mp3" style="display: none;" />
+    <button id="add-song">Add Song</button>
+    <input type="text" id="playlist-name" placeholder="Enter Playlist Name" />
+    <button id="create-playlist">Create Playlist</button>
+    <div id="playlists"></div>
+  </div>
+
+  <!-- Music Player UI -->
+  <div class="music-container" id="music-container">
+    <!-- Progress Bar and Song Info -->
+    <div class="progress-info">
+      <h4 class="title" id="title">Currently Playing: Song Title</h4>
+      <div class="progress-container" id="progress-container">
+        <div class="progress" id="progress"></div>
+        <div class="volume-container">
+          <span id="current-time">00:00</span>
+          <div id="volume-controls" class="hidden">
+            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" />
+          </div>
+          <span id="total-duration">00:00</span>
+          <button id="volume-icon"><i class="fa fa-volume-up"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <audio id="audio"></audio>
+
+    <!-- Media Controls -->
+    <div class="navigation">
+        <button id="shuffle" class="action-btn"><i class="fa fa-random"></i></button>
+        <button id="prev" class="action-btn"><i class="fa fa-backward"></i></button>
+        <button id="play" class="action-btn action-btn-big"><i class="fa fa-play"></i></button>
+        <button id="next" class="action-btn"><i class="fa fa-forward"></i></button>
+        <button id="repeat" class="action-btn"><i class="fa fa-repeat"></i></button>
+        
+    </div>
+  </div>
+
+  <script src="Script.js"></script>
 </body>
 </html>

@@ -1,84 +1,227 @@
-const musicContainer = document.getElementById("music-container");
-const playBtn = document.getElementById("play");
-const prevBtn = document.getElementById("prev");
-const nextBtn = document.getElementById("next");
-const audio = document.getElementById("audio");
-const progress = document.getElementById("progress");
+// Get Elements
+const createPlaylistBtn = document.getElementById("create-playlist");
+const playlistsContainer = document.getElementById("playlists");
+const songInput = document.getElementById("song-input");
+const addSongBtn = document.getElementById("add-song");
+const playlistNameInput = document.getElementById("playlist-name");
+const shuffleBtn = document.getElementById("shuffle");
+const repeatBtn = document.getElementById("repeat");
+const volumeSlider = document.getElementById("volume-slider");
+const currentTimeEl = document.getElementById("current-time");
+const totalDurationEl = document.getElementById("total-duration");
+const volumeIcon = document.getElementById("volume-icon"); 
+const progressBar = document.getElementById("progress");
 const progressContainer = document.getElementById("progress-container");
-const title = document.getElementById("title");
-const cover = document.getElementById("cover");
-// Songs Titles
-const songs = ["Burna_Boy_-_Bank_On_It-HIPHOPMORE.COM", "Kota-Embassy-Furnace", "Mas_Musiq_Aymos_-_Bambelela", "Mas_Musiq_Aymos_-_Ubukhona_feat_Shasha_", "Samthing-Soweto-Amagents-zamusic.org-"];
-// KeepTrack of song
-let songIndex = 0;
-// Initially load song details into DOM
-loadSong(songs[songIndex]);
-// Update song details
-function loadSong(song) {
-title.innerText = song;
-audio.src = `./music/${song}.mp3`;
-cover.src = `./images/${song}.jpg`;
-}
-// Play Song
-function playSong() {
-musicContainer.classList.add("play");
-playBtn.querySelector("i.fa").classList.remove("fa-play");
-playBtn.querySelector("i.fa").classList.add("fa-pause");
-audio.play();
-}
-// Pause Song
-function pauseSong() {
-musicContainer.classList.remove("play");
-playBtn.querySelector("i.fa").classList.add("fa-play");
-playBtn.querySelector("i.fa").classList.remove("fa-pause");
-audio.pause();
-}
-// Previous Song
-function prevSong() {
-songIndex--;
-if (songIndex < 0) {
-songIndex = songs.length - 1;
-}
-loadSong(songs[songIndex]);
-playSong();
-}
-// Next Song
-function nextSong() {
-songIndex++;
-if (songIndex > songs.length - 1) {
-songIndex = 0;
-}
-loadSong(songs[songIndex]);
-playSong();
-}
-// Update Progress bar
-function updateProgress(e) {
-const { duration, currentTime } = e.srcElement;
-const progressPerCent = (currentTime / duration) * 100;
-progress.style.width = `${progressPerCent}%`;
-}
-// Set Progress
-function setProgress(e) {
-const width = this.clientWidth;
-const clickX = e.offsetX;
-const duration = audio.duration;
-audio.currentTime = (clickX / width) * duration;
-}
-// Event Listeners
-playBtn.addEventListener("click", () => {
-const isPlaying = musicContainer.classList.contains("play");
-if (isPlaying) {
-pauseSong();
-} else {
-playSong();
-}
+const playBtn = document.getElementById("play");
+const audio = document.getElementById("audio");
+const nextBtn = document.getElementById("next");
+const prevBtn = document.getElementById("prev");
+
+// Store playlists and songs
+let playlists = {};
+let currentPlaylist = [];
+let currentPlaylistName = "";
+
+// Shuffle and Repeat States
+let isShuffle = false;
+let isRepeat = false;
+
+// Song stats
+let mostPlayed = {};
+let favoriteSongs = new Set();
+
+// Clicking the "Add Songs" button will trigger the hidden file input
+addSongBtn.addEventListener("click", () => {
+  if (currentPlaylistName) {
+    songInput.click();
+  } else {
+    alert("Please create or select a playlist first!");
+  }
 });
-// Change Song
-prevBtn.addEventListener("click", prevSong);
-nextBtn.addEventListener("click", nextSong);
-// Time/Song Update
-audio.addEventListener("timeupdate", updateProgress);
-// Click On progress Bar
-progressContainer.addEventListener("click", setProgress);
-// Song End
-audio.addEventListener("ended", nextSong);
+
+// Handling the file input change event
+songInput.addEventListener("change", () => {
+  const files = songInput.files;
+  if (files.length > 0) {
+    Array.from(files).forEach((file) => {
+      const songURL = URL.createObjectURL(file);
+      currentPlaylist.push({
+        title: file.name.replace(".mp3", ""),
+        src: songURL,
+      });
+    });
+    playlists[currentPlaylistName] = currentPlaylist;
+    renderPlaylists();
+    songInput.value = "";
+  }
+});
+
+// Create a new playlist
+createPlaylistBtn.addEventListener("click", () => {
+  const playlistName = playlistNameInput.value.trim();
+  if (playlistName && !playlists[playlistName]) {
+    playlists[playlistName] = [];
+    currentPlaylistName = playlistName;
+    currentPlaylist = playlists[playlistName];
+    renderPlaylists();
+    alert(`Playlist '${playlistName}' created!`);
+    playlistNameInput.value = "";
+  } else if (playlists[playlistName]) {
+    alert("Playlist already exists!");
+  } else {
+    alert("Please enter a valid playlist name.");
+  }
+});
+
+// Render all playlists
+function renderPlaylists() {
+  playlistsContainer.innerHTML = '';
+  for (const [name, songs] of Object.entries(playlists)) {
+    // Playlist div
+    const playlistDiv = document.createElement("div");
+    playlistDiv.className = "playlist";
+    playlistDiv.textContent = `${name} (${songs.length} songs)`;
+    
+    // Song list container
+    const songList = document.createElement("ul");
+    songList.className = "song-list";
+    
+    // Populate the song list
+    songs.forEach((song, index) => {
+      const songItem = document.createElement("li");
+      songItem.textContent = song.title;
+      songItem.onclick = () => playSong(index, name);
+      songList.appendChild(songItem);
+    });
+
+    // Toggle song list display on playlist click
+    playlistDiv.addEventListener("click", () => {
+      const isActive = playlistDiv.classList.contains("active");
+      // Collapse any open playlist
+      document.querySelectorAll(".playlist").forEach(div => div.classList.remove("active"));
+      document.querySelectorAll(".song-list").forEach(list => list.style.display = "none");
+      
+      // Expand the clicked playlist's song list
+      if (!isActive) {
+        playlistDiv.classList.add("active");
+        songList.style.display = "block";
+      }
+    });
+
+    // Append the playlist and its song list
+    playlistDiv.appendChild(songList);
+    playlistsContainer.appendChild(playlistDiv);
+  }
+}
+
+// Play the selected song from the list
+function playSong(index, playlistName) {
+  let songIndex = index;
+
+  if (isShuffle) {
+    songIndex = Math.floor(Math.random() * playlists[playlistName].length);
+  }
+
+  const song = playlists[playlistName][songIndex];
+  audio.src = song.src;
+  const title = document.getElementById("title");
+  title.textContent = song.title;
+  audio.play();
+
+  // Update Most Played Count
+  mostPlayed[song.title] = (mostPlayed[song.title] || 0) + 1;
+
+  // When Song Ends, Handle Repeat and Next
+  audio.onended = () => {
+    if (isRepeat) {
+      playSong(songIndex, playlistName);
+    } else {
+      nextSong();
+    }
+  };
+}
+
+  
+// Update Shuffle State
+document.getElementById("shuffle").addEventListener("click", function () {
+    this.classList.toggle("active");
+  });
+
+// Update Repeat State
+document.getElementById("repeat").addEventListener("click", function () {
+    this.classList.toggle("active");
+  });
+
+
+// Toggle the visibility of the volume slider
+volumeIcon.addEventListener("click", () => {
+  const volumeControls = document.getElementById("volume-controls");
+  volumeControls.classList.toggle("visible"); // Toggle visibility of the slider
+});
+
+// Update volume
+volumeSlider.addEventListener("input", (e) => {
+  audio.volume = e.target.value;
+});
+
+// Update Time Display
+audio.addEventListener("timeupdate", updateTimeDisplay);
+
+// Function to update current time and duration
+function updateTimeDisplay() {
+  const currentTime = audio.currentTime;
+  const duration = audio.duration;
+  currentTimeEl.textContent = formatTime(currentTime);
+  totalDurationEl.textContent = formatTime(duration);
+}
+
+// Format Time in MM:SS
+function formatTime(time) {
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+// Play/Pause functionality
+playBtn.addEventListener("click", () => {
+  if (audio.paused) {
+    audio.play();
+    playBtn.querySelector("i").classList.remove("fa-play");
+    playBtn.querySelector("i").classList.add("fa-pause");
+  } else {
+    audio.pause();
+    playBtn.querySelector("i").classList.add("fa-play");
+    playBtn.querySelector("i").classList.remove("fa-pause");
+  }
+});
+
+// Next Button
+nextBtn.addEventListener("click", () => {
+  let currentSongIndex = playlists[currentPlaylistName].findIndex(song => song.src === audio.src);
+  let nextSongIndex = (currentSongIndex + 1) % playlists[currentPlaylistName].length;
+  playSong(nextSongIndex, currentPlaylistName);
+});
+
+// Previous Button
+prevBtn.addEventListener("click", () => {
+  let currentSongIndex = playlists[currentPlaylistName].findIndex(song => song.src === audio.src);
+  let prevSongIndex = (currentSongIndex - 1 + playlists[currentPlaylistName].length) % playlists[currentPlaylistName].length;
+  playSong(prevSongIndex, currentPlaylistName);
+});
+
+// Progress Bar update
+audio.addEventListener("timeupdate", () => {
+  const progress = (audio.currentTime / audio.duration) * 100;
+  progressBar.style.width = `${progress}%`;
+});
+
+// Seek to a specific time when clicking on the progress bar
+progressContainer.addEventListener("click", (e) => {
+  const clickPosition = e.offsetX;
+  const containerWidth = progressContainer.offsetWidth;
+  const seekTime = (clickPosition / containerWidth) * audio.duration;
+  audio.currentTime = seekTime;
+});
+
+// Initial render
+renderPlaylists();
