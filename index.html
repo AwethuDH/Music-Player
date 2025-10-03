@@ -1,64 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="Style.css" />
-  <!-- Include Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <title>Music Player</title>
 </head>
+
 <body>
-  <h1>Music Player</h1>
+  <div class="app-container">
+    <h1 class="app-title">Music Player</h1>
+    <div class="theme-selection">
+      <button id="light-mode" class="theme-btn"><i class="fas fa-sun"></i> Light</button>
+      <button id="dark-mode" class="theme-btn active"><i class="fas fa-moon"></i> Dark</button>
+      <button id="sky-blue-mode" class="theme-btn"><i class="fas fa-cloud"></i> Sky Blue</button>
+      <button id="pink-mode" class="theme-btn"><i class="fas fa-heart"></i> Pink</button>
+    </div>
 
-  <!-- Theme Selection Buttons -->
-  <div class="theme-selection">
-    <button id="light-mode">Light Mode</button>
-    <button id="dark-mode">Dark Mode</button>
-    <button id="sky-blue-mode">Sky Blue Mode</button>
-    <button id="pink-mode">Pink Mode</button>
-  </div>
+    <div class="main-content">
+      <div class="playlist-container">
+        <h3>Music Sources</h3>
+        <div class="music-sources">
+          <button id="scan-device" class="control-btn">
+            <i class="fas fa-search"></i> Scan Device for Music
+          </button>
+          <button id="add-local" class="control-btn">
+            <i class="fas fa-folder-open"></i> Add Local Music Files
+          </button>
+          <button id="use-demo" class="control-btn">
+            <i class="fas fa-music"></i> Use Demo Songs
+          </button>
+        </div>
 
-  <!-- Playlist Creation -->
-  <div class="playlist-container">
-    <input type="file" id="song-input" multiple accept=".mp3" style="display: none;" />
-    <button id="add-song">Add Song</button>
-    <input type="text" id="playlist-name" placeholder="Enter Playlist Name" />
-    <button id="create-playlist">Create Playlist</button>
-    <div id="playlists"></div>
-  </div>
+        <div class="playlist-controls">
+          <input type="file" id="song-input" multiple accept=".mp3,.wav,.ogg,.m4a,.aac" style="display: none;" />
+          <input type="text" id="playlist-name" placeholder="Enter Playlist Name" class="text-input" />
+          <button id="create-playlist" class="control-btn"><i class="fas fa-folder-plus"></i> Create Playlist</button>
+        </div>
+        <div id="playlists" class="playlists-list"></div>
+      </div>
 
-  <!-- Music Player UI -->
-  <div class="music-container" id="music-container">
-    <!-- Progress Bar and Song Info -->
-    <div class="progress-info">
-      <h4 class="title" id="title">Currently Playing: Song Title</h4>
-      <div class="progress-container" id="progress-container">
-        <div class="progress" id="progress"></div>
-        <div class="volume-container">
-          <span id="current-time">00:00</span>
-          <div id="volume-controls" class="hidden">
-            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" />
+      <div class="music-container" id="music-container">
+        <div class="player-header">
+          <h3>Now Playing</h3>
+          <div class="music-source-indicator" id="source-indicator">
+            <span id="source-text">Ready to play</span>
           </div>
-          <span id="total-duration">00:00</span>
-          <button id="volume-icon"><i class="fa fa-volume-up"></i></button>
+        </div>
+
+        <div class="progress-info">
+          <h4 class="title" id="title">Select a music source to begin</h4>
+          <div class="progress-container" id="progress-container">
+            <div class="progress" id="progress"></div>
+          </div>
+          <div class="time-display">
+            <span id="current-time">00:00</span>
+            <span id="total-duration">00:00</span>
+          </div>
+        </div>
+
+        <audio id="audio"></audio>
+
+        <div class="navigation">
+          <button id="shuffle" class="action-btn" title="Shuffle">
+            <i class="fas fa-random"></i>
+          </button>
+          <button id="prev" class="action-btn" title="Previous">
+            <i class="fas fa-step-backward"></i>
+          </button>
+          <button id="play" class="action-btn action-btn-big" title="Play">
+            <i class="fas fa-play"></i>
+          </button>
+          <button id="next" class="action-btn" title="Next">
+            <i class="fas fa-step-forward"></i>
+          </button>
+          <button id="repeat" class="action-btn" title="Repeat">
+            <i class="fas fa-redo"></i>
+          </button>
+        </div>
+        <div class="volume-section">
+          <button id="volume-icon" class="volume-btn" title="Volume">
+            <i class="fas fa-volume-up"></i>
+          </button>
+          <div class="volume-controls">
+            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7" />
+          </div>
+        </div>
+
+        <div class="current-playlist">
+          <div class="playlist-header">
+            <h4>Current Playlist</h4>
+            <span id="song-count">0 songs</span>
+          </div>
+          <div id="song-list" class="song-list"></div>
         </div>
       </div>
     </div>
-
-    <audio id="audio"></audio>
-
-    <!-- Media Controls -->
-    <div class="navigation">
-        <button id="shuffle" class="action-btn"><i class="fa fa-random"></i></button>
-        <button id="prev" class="action-btn"><i class="fa fa-backward"></i></button>
-        <button id="play" class="action-btn action-btn-big"><i class="fa fa-play"></i></button>
-        <button id="next" class="action-btn"><i class="fa fa-forward"></i></button>
-        <button id="repeat" class="action-btn"><i class="fa fa-repeat"></i></button>
-        
-    </div>
   </div>
 
-  <script src="Script.js"></script>
+  <script src="script.js"></script>
 </body>
+
 </html>
