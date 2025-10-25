@@ -16,6 +16,7 @@ class MusicPlayer {
         this.songInput = document.getElementById('song-input');
         this.scanDeviceButton = document.getElementById('scan-device');
         this.addLocalButton = document.getElementById('add-local');
+        this.browseFoldersButton = document.getElementById('browse-folders');
         this.useDemoButton = document.getElementById('use-demo');
         this.playlistNameInput = document.getElementById('playlist-name');
         this.createPlaylistButton = document.getElementById('create-playlist');
@@ -24,6 +25,13 @@ class MusicPlayer {
         this.sourceIndicator = document.getElementById('source-indicator');
         this.sourceText = document.getElementById('source-text');
         this.songCount = document.getElementById('song-count');
+        
+        // File explorer elements
+        this.fileExplorer = document.getElementById('file-explorer');
+        this.goBackButton = document.getElementById('go-back');
+        this.closeExplorerButton = document.getElementById('close-explorer');
+        this.currentFolderElement = document.getElementById('current-folder');
+        this.folderContents = document.getElementById('folder-contents');
 
         this.songs = [];
         this.playlists = JSON.parse(localStorage.getItem('playlists')) || {};
@@ -34,6 +42,10 @@ class MusicPlayer {
         this.repeatMode = 'none';
         this.originalPlaylist = [];
         this.currentSource = 'none';
+        
+        // File explorer state
+        this.currentFolderPath = '';
+        this.folderHistory = [];
 
         this.demoSongs = [
             {
@@ -56,13 +68,13 @@ class MusicPlayer {
             },
             {
                 name: "Furnace",
-                url: "C:\\Users\\Awethu Flathela\\DevRepos\\Music-Player\\Songs\\Kota-Embassy-Furnace.mp3",
+                url: "Songs\\Kota-Embassy-Furnace.mp3",
                 duration: "0:00",
                 source: "demo"
             },
             {
                 name: "Bambelela",
-                url: "C:\\Users\\Awethu Flathela\\DevRepos\\Music-Player\\Songs\\Mas_Musiq_Aymos_-_Bambelela.mp3",
+                url: "Songs\\Mas_Musiq_Aymos_-_Bambelela.mp3",
                 duration: "0:00",
                 source: "demo"
             }
@@ -82,9 +94,14 @@ class MusicPlayer {
         this.progressContainer.addEventListener('click', (e) => this.setProgress(e));
         this.addLocalButton.addEventListener('click', () => this.songInput.click());
         this.scanDeviceButton.addEventListener('click', () => this.scanDeviceForMusic());
+        this.browseFoldersButton.addEventListener('click', () => this.showFileExplorer());
         this.useDemoButton.addEventListener('click', () => this.useDemoSongs());
         this.songInput.addEventListener('change', (e) => this.handleSongUpload(e));
         this.createPlaylistButton.addEventListener('click', () => this.createPlaylist());
+        
+        // File explorer events
+        this.goBackButton.addEventListener('click', () => this.navigateBack());
+        this.closeExplorerButton.addEventListener('click', () => this.hideFileExplorer());
 
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('ended', () => this.handleSongEnd());
@@ -96,6 +113,218 @@ class MusicPlayer {
         this.autoDetectMusic();
     }
 
+    // Enhanced Mobile File Handling
+    async showFileExplorer() {
+        this.fileExplorer.style.display = 'block';
+        this.updateSourceIndicator('Browsing device folders...', 'loading');
+        
+        try {
+            // Try to get access to the file system
+            if ('showDirectoryPicker' in window) {
+                await this.browseWithFileSystemAccess();
+            } else {
+                // Fallback: Use the traditional file input but with better UX
+                this.showEnhancedFilePicker();
+            }
+        } catch (error) {
+            console.log('File system access not available:', error);
+            this.showEnhancedFilePicker();
+        }
+    }
+
+    async browseWithFileSystemAccess() {
+        try {
+            const directoryHandle = await window.showDirectoryPicker();
+            this.currentFolderPath = directoryHandle.name;
+            this.currentFolderElement.textContent = this.currentFolderPath;
+            this.folderHistory = [directoryHandle];
+            
+            await this.loadFolderContents(directoryHandle);
+            
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Error accessing file system:', error);
+                this.updateSourceIndicator('Could not access folders. Try manual selection.');
+                this.showEnhancedFilePicker();
+            }
+        }
+    }
+
+    async loadFolderContents(directoryHandle) {
+        this.folderContents.innerHTML = '<div class="folder-item"><i class="fas fa-spinner fa-spin"></i> Loading contents...</div>';
+        
+        const folders = [];
+        const audioFiles = [];
+        
+        try {
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'directory') {
+                    folders.push(entry);
+                } else if (entry.kind === 'file') {
+                    const file = await entry.getFile();
+                    if (file.type.startsWith('audio/')) {
+                        audioFiles.push({ handle: entry, file });
+                    }
+                }
+            }
+
+            this.displayFolderContents(folders, audioFiles);
+            
+        } catch (error) {
+            console.error('Error reading folder contents:', error);
+            this.folderContents.innerHTML = '<div class="folder-item">Error reading folder</div>';
+        }
+    }
+
+    displayFolderContents(folders, audioFiles) {
+        this.folderContents.innerHTML = '';
+        
+        // Display folders first
+        folders.forEach(folder => {
+            const folderElement = document.createElement('div');
+            folderElement.className = 'folder-item';
+            folderElement.innerHTML = `
+                <div class="file-type-indicator folder-type">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="folder-info">
+                    <div class="folder-name">${folder.name}</div>
+                    <div class="folder-path">Folder</div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            folderElement.addEventListener('click', () => this.navigateToFolder(folder));
+            this.folderContents.appendChild(folderElement);
+        });
+
+        // Display audio files
+        audioFiles.forEach(({ handle, file }) => {
+            const fileElement = document.createElement('div');
+            fileElement.className = 'file-item audio-file';
+            fileElement.innerHTML = `
+                <div class="file-type-indicator audio-type">
+                    <i class="fas fa-music"></i>
+                </div>
+                <div class="file-info">
+                    <div class="file-name">${file.name.replace(/\.[^/.]+$/, "")}</div>
+                    <div class="file-details">${this.formatFileSize(file.size)} • ${file.type}</div>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn add-to-playlist" title="Add to Playlist">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            `;
+            
+            const addButton = fileElement.querySelector('.add-to-playlist');
+            addButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.addFileToPlaylist(file);
+            });
+            
+            fileElement.addEventListener('click', () => this.previewFile(file));
+            this.folderContents.appendChild(fileElement);
+        });
+
+        if (folders.length === 0 && audioFiles.length === 0) {
+            this.folderContents.innerHTML = '<div class="folder-item">No folders or audio files found</div>';
+        }
+    }
+
+    async navigateToFolder(folderHandle) {
+        this.folderHistory.push(folderHandle);
+        this.currentFolderPath = folderHandle.name;
+        this.currentFolderElement.textContent = this.currentFolderPath;
+        await this.loadFolderContents(folderHandle);
+    }
+
+    navigateBack() {
+        if (this.folderHistory.length > 1) {
+            this.folderHistory.pop();
+            const previousFolder = this.folderHistory[this.folderHistory.length - 1];
+            this.currentFolderPath = previousFolder.name;
+            this.currentFolderElement.textContent = this.currentFolderPath;
+            this.loadFolderContents(previousFolder);
+        }
+    }
+
+    hideFileExplorer() {
+        this.fileExplorer.style.display = 'none';
+        this.updateSourceIndicator('File browser closed');
+    }
+
+    showEnhancedFilePicker() {
+        // Create a more descriptive file input
+        this.songInput.setAttribute('multiple', 'true');
+        this.songInput.setAttribute('accept', '.mp3,.wav,.ogg,.m4a,.aac,.flac,audio/*');
+        this.songInput.click();
+        
+        this.updateSourceIndicator('Select multiple audio files from any folder', 'info');
+    }
+
+    addFileToPlaylist(file) {
+        const url = URL.createObjectURL(file);
+        const song = {
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            url: url,
+            duration: '0:00',
+            source: 'local',
+            fileSize: this.formatFileSize(file.size),
+            type: file.type
+        };
+        
+        this.songs.push(song);
+        this.currentSource = 'local';
+        this.updateSongList();
+        this.savePlaylist();
+        
+        this.updateSourceIndicator(`Added "${song.name}" to playlist`, 'local');
+        
+        if (!this.audio.src && this.songs.length === 1) {
+            this.loadSong(0);
+        }
+    }
+
+    previewFile(file) {
+        const url = URL.createObjectURL(file);
+        this.audio.src = url;
+        this.title.textContent = file.name.replace(/\.[^/.]+$/, "");
+        this.playSong();
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Enhanced mobile file scanning
+    async scanDeviceForMusic() {
+        this.updateSourceIndicator('Scanning for music files...', 'loading');
+        
+        try {
+            // Try the new file system access first
+            if ('showDirectoryPicker' in window) {
+                this.updateSourceIndicator('Please select a folder to scan for music');
+                this.showFileExplorer();
+                return true;
+            } else {
+                // Fallback to traditional method with better messaging
+                this.updateSourceIndicator('Select your music folder or files');
+                this.songInput.click();
+                return false;
+            }
+        } catch (error) {
+            console.log('Enhanced scan not available:', error);
+            this.updateSourceIndicator('Using manual file selection');
+            this.addLocalButton.click();
+            return false;
+        }
+    }
+
+    // Rest of your existing methods remain the same...
     async autoDetectMusic() {
         if (this.playlists.local && this.playlists.local.length > 0) {
             this.songs = this.playlists.local;
@@ -108,30 +337,7 @@ class MusicPlayer {
         const hasDeviceMusic = await this.scanDeviceForMusic();
         
         if (!hasDeviceMusic && this.songs.length === 0) {
-            this.updateSourceIndicator('No music found. Try demo songs!');
-        }
-    }
-
-    async scanDeviceForMusic() {
-        this.updateSourceIndicator('Scanning device for music...', 'loading');
-        
-        try {
-            if (this.playlists.device && this.playlists.device.length > 0) {
-                this.songs = this.playlists.device;
-                this.currentSource = 'device';
-                this.updateSongList();
-                this.updateSourceIndicator('Using previously found device music', 'device');
-                return true;
-            }
-
-            this.updateSourceIndicator('Please select your music files manually');
-            this.addLocalButton.click();
-            return false;
-
-        } catch (error) {
-            console.log('Device scan not available:', error);
-            this.updateSourceIndicator('Device scan not supported in this browser');
-            return false;
+            this.updateSourceIndicator('No music found. Try demo songs or browse folders!');
         }
     }
 
@@ -171,7 +377,9 @@ class MusicPlayer {
                     name: file.name.replace(/\.[^/.]+$/, ""),
                     url: url,
                     duration: '0:00',
-                    source: 'local'
+                    source: 'local',
+                    fileSize: this.formatFileSize(file.size),
+                    type: file.type
                 });
                 addedCount++;
             }
@@ -179,7 +387,7 @@ class MusicPlayer {
 
         if (addedCount > 0) {
             this.currentSource = 'local';
-            this.updateSourceIndicator(`Added ${addedCount} local music files`, 'local');
+            this.updateSourceIndicator(`Added ${addedCount} music files`, 'local');
             this.savePlaylist();
             this.updateSongList();
 
@@ -256,7 +464,7 @@ class MusicPlayer {
             emptyMessage.innerHTML = `
                 <i class="fas fa-music"></i>
                 <div>No music found</div>
-                <small>Try adding local files or using demo songs</small>
+                <small>Try browsing folders or adding local files</small>
             `;
             this.songList.appendChild(emptyMessage);
             this.songCount.textContent = '0 songs';
@@ -277,12 +485,14 @@ class MusicPlayer {
             songEl.className = `song-item ${index === this.currentSongIndex ? 'active' : ''}`;
             
             const sourceIcon = song.source === 'demo' ? 'fas fa-star' : 'fas fa-file-audio';
+            const fileInfo = song.fileSize ? ` • ${song.fileSize}` : '';
+            
             songEl.innerHTML = `
                 <div class="song-info">
                     <i class="${sourceIcon}"></i>
                     <span>${song.name}</span>
                 </div>
-                <span class="song-duration">${song.duration}</span>
+                <span class="song-duration">${song.duration}${fileInfo}</span>
             `;
             songEl.addEventListener('click', () => this.loadSong(index));
             this.songList.appendChild(songEl);

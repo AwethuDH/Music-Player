@@ -12,6 +12,12 @@
 <body>
   <div class="app-container">
     <h1 class="app-title">Music Player</h1>
+
+    <!-- Designer Signature - Fixed Position -->
+    <div class="designer-signature">
+      <i class="fas fa-code" href=""></i> Designed by Awethu Flathela
+    </div>
+
     <div class="theme-selection">
       <button id="light-mode" class="theme-btn"><i class="fas fa-sun"></i> Light</button>
       <button id="dark-mode" class="theme-btn active"><i class="fas fa-moon"></i> Dark</button>
@@ -29,13 +35,30 @@
           <button id="add-local" class="control-btn">
             <i class="fas fa-folder-open"></i> Add Local Music Files
           </button>
+          <button id="browse-folders" class="control-btn">
+            <i class="fas fa-folder-tree"></i> Browse All Folders
+          </button>
           <button id="use-demo" class="control-btn">
             <i class="fas fa-music"></i> Use Demo Songs
           </button>
         </div>
 
+        <div id="file-explorer" class="file-explorer" style="display: none;">
+          <div class="file-explorer-header">
+            <button id="go-back" class="control-btn small">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <h4 id="current-folder">Root</h4>
+            <button id="close-explorer" class="control-btn small">
+              <i class="fas fa-times"></i> Close
+            </button>
+          </div>
+          <div id="folder-contents" class="folder-contents">
+          </div>
+        </div>
+
         <div class="playlist-controls">
-          <input type="file" id="song-input" multiple accept=".mp3,.wav,.ogg,.m4a,.aac" style="display: none;" />
+          <input type="file" id="song-input" multiple accept=".mp3,.wav,.ogg,.m4a,.aac,.flac" style="display: none;" />
           <input type="text" id="playlist-name" placeholder="Enter Playlist Name" class="text-input" />
           <button id="create-playlist" class="control-btn"><i class="fas fa-folder-plus"></i> Create Playlist</button>
         </div>
